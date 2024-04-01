@@ -174,13 +174,35 @@ def update_repos(base_path: str, repos: t.Dict[str, t.List[str]]) -> None:
 
             stderr = sys.stderr.buffer
 
-            if os.path.exists(path):
+            if False and os.path.exists(path):
                 subprocess.run(['git', 'checkout', '.'], stdout=stderr, check=True, cwd=path)
                 subprocess.run(['git', 'clean', '-fxd'], stdout=stderr, check=True, cwd=path)
                 subprocess.run(['git', 'pull'], stdout=stderr, check=True, cwd=path)
             else:
                 os.makedirs(os.path.dirname(path), exist_ok=True)
-                subprocess.run(['git', 'clone', f'https://github.com/{repo}', '--branch', branch, path], stdout=stderr, check=True)
+                subprocess.run(
+                    [
+                        'git', 'clone', f'https://github.com/{repo}',
+                        f'--branch={branch}',
+                        '--depth=1',
+                        '--no-checkout',
+                        '--filter=blob:none',
+                        path,
+                    ],
+                    stdout=stderr,
+                    check=True,
+                )
+                # git checkout master -- small/0000
+                subprocess.run(
+                    [
+                        'git', 'checkout', branch,
+                        '--',
+                        '.azure-pipelines/azure-pipelines.yml',
+                    ],
+                    cwd=path,
+                    stdout=stderr,
+                    check=False,
+                )
 
         existing_branches = os.listdir(os.path.join(base_path, repo))
         purge_branches = set(existing_branches) - set(branches)
